@@ -5,7 +5,7 @@ go-uv is a [uv](https://docs.astral.sh/uv/) manager for Go which allows you run 
 ## Prerequisites
 
 - Go 1.18+
-- macOS or Linux 
+- Windows, macOS or Linux 
 
 ## Installation
 
@@ -19,8 +19,9 @@ go get -u github.com/zyfy29/go-uv
 ```go
 import "github.com/zyfy29/go-uv"
 
-installPath := "/path/to/install"
-uv.Init(installPath) // will be /tmp/go-uv if left empty
+installPath := "/path/to/install" // Windows: "C:\\path\\to\\install"
+uv.Init(installPath) // will be OS-appropriate temp dir if left empty:
+                     // Windows: %TEMP%\go-uv, macOS/Linux: /tmp/go-uv
 defer os.RemoveAll(installPath) // cleanup if you only need it once
 
 // uv.Install require an *http.Client, nil for http.DefaultClient
@@ -46,9 +47,13 @@ if err := command.Run(); err != nil {
 }
 ```
 
-## Discription
+## Description
 
-go-uv actually did an unmanaged installation by running [uv official install script](https://astral.sh/uv/install.sh). This is convenient for temporary usage, and only `uv` and `uvx` will be persist in your disk.
+go-uv actually did an unmanaged installation by running [uv official install script](https://astral.sh/uv/install.sh) on Unix-like systems or [PowerShell script](https://astral.sh/uv/install.ps1) on Windows. This is convenient for temporary usage, and only `uv` and `uvx` will be persist in your disk.
+
+**Platform Support:**
+- **Windows**: Uses PowerShell script (`install.ps1`) and `.exe` executables
+- **macOS/Linux**: Uses shell script (`install.sh`) and standard executables
 
 ## Contributing
 
