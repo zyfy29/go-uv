@@ -38,7 +38,7 @@ command = uv.Uvx("--from", "openai-whisper", "whisper", "--help")
 
 // and if you want to pass a context:
 command = uv.UvContext(ctx, "run", "echo", "hello world")
-conmmand = uv.UvxContext(ctx, "--from", "openai-whisper", "whisper", "--help")
+command = uv.UvxContext(ctx, "--from", "openai-whisper", "whisper", "--help")
 
 // run commands
 if err := command.Run(); err != nil {
@@ -46,7 +46,7 @@ if err := command.Run(); err != nil {
 }
 ```
 
-## Discription
+## Description
 
 go-uv actually did an unmanaged installation by running [uv official install script](https://astral.sh/uv/install.sh). This is convenient for temporary usage, and only `uv` and `uvx` will be persist in your disk.
 
