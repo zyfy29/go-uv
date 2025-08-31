@@ -93,7 +93,7 @@ func Install(client *http.Client) error {
 
 	var cmd *exec.Cmd
 	env := append(os.Environ(), fmt.Sprintf("UV_UNMANAGED_INSTALL=%s", installPath))
-	
+
 	if runtime.GOOS == "windows" {
 		// On Windows, use PowerShell to execute the .ps1 script
 		cmd = exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-Command", string(scriptContent))
