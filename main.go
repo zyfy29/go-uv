@@ -8,49 +8,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 )
 
 const InstallerScriptUrl = "https://astral.sh/uv/install.sh"
 
-// getDefaultInstallPath returns the OS-appropriate default installation path
-func getDefaultInstallPath() string {
-	if runtime.GOOS == "windows" {
-		tempDir := os.Getenv("TEMP")
-		if tempDir == "" {
-			tempDir = os.Getenv("TMP")
-		}
-		if tempDir == "" {
-			tempDir = "C:\\temp"
-		}
-		return filepath.Join(tempDir, "go-uv")
-	}
-	return "/tmp/go-uv"
-}
-
-// getInstallerScriptUrl returns the appropriate installer script URL for the current OS
-func getInstallerScriptUrl() string {
-	if runtime.GOOS == "windows" {
-		return "https://astral.sh/uv/install.ps1"
-	}
-	return InstallerScriptUrl
-}
-
-// getExecutableName returns the executable name with appropriate extension for the current OS
-func getExecutableName(name string) string {
-	if runtime.GOOS == "windows" {
-		return name + ".exe"
-	}
-	return name
-}
-
 var (
-	installPath = getDefaultInstallPath()
+	installPath = "/tmp/go-uv"
 )
 
 // Init sets the installation path for uv and uvx binaries.
-// if path is an empty string, it defaults to OS-appropriate path:
-// Windows: %TEMP%\go-uv, macOS/Linux: /tmp/go-uv.
+// if path is an empty string, it defaults to /tmp/go-uv.
 func Init(path string) {
 	if path != "" {
 		installPath = path
@@ -58,16 +25,14 @@ func Init(path string) {
 }
 
 // Install if uv, uvx are already installed, print a message and skip installation
-// else, download the appropriate install script for the OS and execute it:
-// Windows: https://astral.sh/uv/install.ps1 (PowerShell)
-// macOS/Linux: https://astral.sh/uv/install.sh (Shell)
+// else, download https://astral.sh/uv/install.sh using http.Client and execute it
 func Install(client *http.Client) error {
 	fmt.Println("Installing uv to", installPath)
 	if client == nil {
 		client = http.DefaultClient
 	}
 
-	if _, err := os.Stat(filepath.Join(installPath, getExecutableName("uvx"))); err == nil {
+	if _, err := os.Stat(filepath.Join(installPath, "uvx")); err == nil {
 		fmt.Println("uvx are already installed at", installPath)
 		return nil
 	}
@@ -76,7 +41,7 @@ func Install(client *http.Client) error {
 		return fmt.Errorf("failed to create install directory: %w", err)
 	}
 
-	resp, err := client.Get(getInstallerScriptUrl())
+	resp, err := client.Get(InstallerScriptUrl)
 	if err != nil {
 		return fmt.Errorf("failed to download install script: %w", err)
 	}
@@ -91,17 +56,8 @@ func Install(client *http.Client) error {
 		return fmt.Errorf("failed to read install script: %w", err)
 	}
 
-	var cmd *exec.Cmd
-	env := append(os.Environ(), fmt.Sprintf("UV_UNMANAGED_INSTALL=%s", installPath))
-
-	if runtime.GOOS == "windows" {
-		// On Windows, use PowerShell to execute the .ps1 script
-		cmd = exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-Command", string(scriptContent))
-	} else {
-		// On Unix-like systems, use sh to execute the shell script
-		cmd = exec.Command("sh", "-c", string(scriptContent))
-	}
-	cmd.Env = env
+	cmd := exec.Command("sh", "-c", string(scriptContent))
+	cmd.Env = append(os.Environ(), fmt.Sprintf("UV_UNMANAGED_INSTALL=%s", installPath))
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to install uv: %w", err)
@@ -133,10 +89,10 @@ func UvxContext(ctx context.Context, opt ...string) *exec.Cmd {
 
 // GetUvPath returns the installation path of uv binaries.
 func GetUvPath() string {
-	return filepath.Join(installPath, getExecutableName("uv"))
+	return filepath.Join(installPath, "uv")
 }
 
 // GetUvxPath returns the installation path of uvx binaries.
 func GetUvxPath() string {
-	return filepath.Join(installPath, getExecutableName("uvx"))
+	return filepath.Join(installPath, "uvx")
 }
