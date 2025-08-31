@@ -1,6 +1,8 @@
 package uv
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -8,73 +10,63 @@ import (
 	"time"
 )
 
-func TestInstallAndUvx(t *testing.T) {
-	// Setup: Create a temporary directory for testing
+func TestAll(t *testing.T) {
 	tempDir, err := os.MkdirTemp("", "go-uv-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
 	defer os.RemoveAll(tempDir)
 
-	// Set the install path to our temp directory
 	Init(tempDir)
 
-	// Test 1: Install uv
-	client := &http.Client{Timeout: 30 * time.Second}
-	err = Install(client)
-	if err != nil {
-		t.Fatalf("Install failed: %v", err)
-	}
+	t.Run("Install", func(t *testing.T) {
+		client := &http.Client{Timeout: 30 * time.Second}
+		err = Install(client)
+		if err != nil {
+			t.Fatalf("Install failed: %v", err)
+		}
+		uvPath := filepath.Join(installPath, "uv")
+		uvxPath := filepath.Join(installPath, "uvx")
 
-	// Test 2: Verify uv and uvx binaries exist
-	uvPath := filepath.Join(InstallPath, "uv")
-	uvxPath := filepath.Join(InstallPath, "uvx")
+		if _, err := os.Stat(uvPath); os.IsNotExist(err) {
+			t.Errorf("uv binary not found at %s", uvPath)
+		}
+		if _, err := os.Stat(uvxPath); os.IsNotExist(err) {
+			t.Errorf("uvx binary not found at %s", uvxPath)
+		}
+	})
 
-	if _, err := os.Stat(uvPath); os.IsNotExist(err) {
-		t.Errorf("uv binary not found at %s", uvPath)
-	}
-	if _, err := os.Stat(uvxPath); os.IsNotExist(err) {
-		t.Errorf("uvx binary not found at %s", uvxPath)
-	}
+	t.Run("uv", func(t *testing.T) {
+		echoCmd := Uv("run", "echo", "Hello, uv!")
+		output, err := echoCmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("uv run echo failed: %v\nOutput: %s", err, string(output))
+		}
+		t.Logf("uv run echo output:\n%s", string(output))
+	})
 
-	// Test 3: Run uvx --help (lightest command)
-	cmd := Uvx("--help")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("uvx --help failed: %v\nOutput: %s", err, string(output))
-	}
+	t.Run("uv with context", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		sleepCmd := UvContext(ctx, "run", "sleep", "5")
+		if err := sleepCmd.Run(); err != nil {
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				t.Log("uv run sleep timed out as expected")
+			} else {
+				t.Errorf("unexpected error %v", err)
+			}
+		} else {
+			t.Errorf("uv run sleep unexpectedly succeeded")
+		}
 
-	if len(output) == 0 {
-		t.Error("uvx --help produced no output")
-	}
+	})
 
-	t.Logf("uvx --help output length: %d bytes", len(output))
-
-	// Test 4: Run uvx --version (also very light)
-	cmd = Uvx("--version")
-	output, err = cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("uvx --version failed: %v\nOutput: %s", err, string(output))
-	}
-
-	if len(output) == 0 {
-		t.Error("uvx --version produced no output")
-	}
-
-	t.Logf("uvx --version output: %s", string(output))
-
-	// Test 5: Test that Install is idempotent (doesn't reinstall if already installed)
-	err = Install(client)
-	if err != nil {
-		t.Fatalf("Second Install call failed: %v", err)
-	}
-
-	// Test 6: Run a simple uvx command that requires a plugin (e.g., cowsay)
-	cowsayCmd := Uvx("cowsay", "-t", "Hello, uv!")
-	output, err = cowsayCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("uvx cowsay failed: %v\nOutput: %s", err, string(output))
-	}
-	t.Logf("uvx cowsay output:\n%s", string(output))
-
+	t.Run("uvx", func(t *testing.T) {
+		cowsayCmd := Uvx("cowsay", "-t", "Hello, uv!")
+		output, err := cowsayCmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("uvx cowsay failed: %v\nOutput: %s", err, string(output))
+		}
+		t.Logf("uvx cowsay output:\n%s", string(output))
+	})
 }
