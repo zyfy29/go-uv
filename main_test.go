@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 )
@@ -25,8 +24,8 @@ func TestAll(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Install failed: %v", err)
 		}
-		uvPath := filepath.Join(installPath, "uv")
-		uvxPath := filepath.Join(installPath, "uvx")
+		uvPath := GetUvPath()
+		uvxPath := GetUvxPath()
 
 		if _, err := os.Stat(uvPath); os.IsNotExist(err) {
 			t.Errorf("uv binary not found at %s", uvPath)

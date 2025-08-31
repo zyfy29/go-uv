@@ -69,25 +69,30 @@ func Install(client *http.Client) error {
 
 // Uv builds an *exec.Cmd to run uv with the given options.
 func Uv(opt ...string) *exec.Cmd {
-	return exec.Command(filepath.Join(installPath, "uv"), opt...)
+	return exec.Command(GetUvPath(), opt...)
 }
 
 // UvContext builds an *exec.Cmd to run uv with the given options and context.
 func UvContext(ctx context.Context, opt ...string) *exec.Cmd {
-	return exec.CommandContext(ctx, filepath.Join(installPath, "uv"), opt...)
+	return exec.CommandContext(ctx, GetUvPath(), opt...)
 }
 
 // Uvx builds an *exec.Cmd to run uvx with the given options.
 func Uvx(opt ...string) *exec.Cmd {
-	return exec.Command(filepath.Join(installPath, "uvx"), opt...)
+	return exec.Command(GetUvxPath(), opt...)
 }
 
 // UvxContext builds an *exec.Cmd to run uvx with the given options and context.
 func UvxContext(ctx context.Context, opt ...string) *exec.Cmd {
-	return exec.CommandContext(ctx, filepath.Join(installPath, "uvx"), opt...)
+	return exec.CommandContext(ctx, GetUvxPath(), opt...)
 }
 
-// GetBinPath returns the installation path of uv and uvx binaries.
-func GetBinPath() string {
-	return installPath
+// GetUvPath returns the installation path of uv binaries.
+func GetUvPath() string {
+	return filepath.Join(installPath, "uv")
+}
+
+// GetUvxPath returns the installation path of uvx binaries.
+func GetUvxPath() string {
+	return filepath.Join(installPath, "uvx")
 }
